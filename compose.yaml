@@ -1,0 +1,14 @@
+version: "3.7"
+
+services:
+  node-svc:
+    container_name: node-svc
+    restart: always
+    build:
+      context: .
+      target: dev
+    volumes:
+      - ./src:/app/src/
+      - ./uploads:/app/uploads/
+    ports:
+      - 8002:8002
