@@ -30,10 +30,6 @@ jobs:
       - run: npm ci
       - run: yarn install
       - run: docker compose stop && docker compose up -d --build
-      - run: docker exec nodetestapp-backend-1 yarn migrate
-      - run: docker exec nodetestapp-backend-1 yarn seed
-      - run: docker exec nodetestapp-db-1 yarn migrate
-      - run: docker exec nodetestapp-db-1 yarn seed
 
       #     - run: npm run build --if-present     To be done once you have a test suite ready
 
