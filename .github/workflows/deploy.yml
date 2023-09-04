@@ -1,7 +1,7 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# This workflow will do a clean install of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Node.js deploy to test environment
+name: elastic.beanstalk.dev CD
 
 on:
   push:
@@ -17,28 +17,50 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-      - run: |
-          if [-d uploads/]; then
-            cp -r uploads/ /var/www/html/
-          fi
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-      - run: rm -rf node_modules
+      #         cache: 'npm'
+
+      - name: Installing NPM
+        run: npm install
+
+      - run: npm ci
       - run: yarn install
-      - name: "Make .env file"
-        run: |
-          touch .env
-          echo APP_PER_PAGE=${{ secrets.APP_PER_PAGE }} >> .env
-          echo JWT_ENCRYPTION=${{ secrets.JWT_ENCRYPTION }} >> .env
-          echo JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} >> .env
-          echo LOG_LEVEL=${{ secrets.LOG_LEVEL }} >> .env
-      - run: |
-          if [-d /var/www/html/uploads]; then
-            cp -r /var/www/html/uploads/* uploads/
-          fi
       - run: docker compose stop && docker compose up -d --build
       - run: docker exec node-svc yarn migrate
       - run: docker exec node-svc yarn seed
+
+      #     - run: npm run build --if-present     To be done once you have a test suite ready
+
+      - name: Generate deployment package
+        run: zip -r deploy.zip * -x "**node_modules**"
+
+      - name: Get timestamp
+        uses: gerred/actions/current-time@master
+        id: current-time
+
+      - name: Run string replace
+        uses: frabert/replace-string-action@master
+        id: format-time
+        with:
+          pattern: '[:\.]+'
+          string: "${{ steps.current-time.outputs.time }}"
+          replace-with: "-"
+          flags: "g"
+
+      - name: energy-management-api
+        uses: einaregilsson/beanstalk-deploy@v18
+        with:
+          aws_access_key: ${{secrets.AWS_PROD_ACCESS_KEY}}
+          aws_secret_key: ${{secrets.AWS_PROD_SECRET_KEY}}
+          application_name: energy-management-api
+          environment_name: energy-management-api-env
+          region: us-east-2
+          version_label: "app-version-2023-03-15T07-41-21-134Z" #Using timestamp for the versions
+          deployment_package: deploy.zip
+
+      - name: Deployed successfully!
+        run: echo App deployed to ELB
