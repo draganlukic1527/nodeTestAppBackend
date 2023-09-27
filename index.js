@@ -34,6 +34,10 @@ app.get("/bye", (req, res) => {
 	res.status(200).send("by, World!");
 });
 
+app.get("/check", (req, res) => {
+	res.status(200).send("by, World!");
+});
+
 app.post("/api/login", (req, res) => {
 	const { username, password } = req.body;
 	const user = users.find(
